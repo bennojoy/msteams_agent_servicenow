@@ -1,0 +1,29 @@
+# Core bot framework
+aiohttp==3.9.1
+botbuilder-core==4.17.0
+botbuilder-schema==4.17.0
+python-dotenv==1.0.0
+
+# OpenAI integration
+openai==1.6.1
+
+# Note: Using simple agent implementation instead of external agents library
+
+# Azure integration
+azure-identity==1.15.0
+azure-mgmt-compute==30.3.0
+azure-mgmt-resource==23.0.1
+azure-mgmt-network==25.1.0
+
+# Data storage and serialization
+pydantic==2.5.2
+python-dateutil==2.8.2
+
+# Logging and monitoring
+structlog==23.2.0
+
+# Async utilities
+asyncio-mqtt==0.16.1 
+
+# ServiceNow integration
+requests==2.31.0 
