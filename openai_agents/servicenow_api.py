@@ -745,6 +745,89 @@ class ServiceNowAPI:
                 'success': False,
                 'error': f'Failed to create date variable: {str(e)}'
             }
+
+    def create_reference_variable(self, catalog_identifier: str, name: str, label: str, reference_table: str,
+                                reference_qual_condition: str = "active=true", required: bool = False,
+                                help_text: str = None, order: int = None) -> Dict[str, Any]:
+        """Create a reference variable for a catalog item."""
+        try:
+            catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
+            
+            payload = {
+                'cat_item': catalog_id,
+                'type': '8',  # Reference
+                'question_text': label,
+                'mandatory': 'true' if required else 'false',
+                'active': 'true',
+                'order': str(order),
+                'reference': reference_table,
+                'reference_qual': 'simple',
+                'reference_qual_condition': reference_qual_condition
+            }
+            
+            if help_text:
+                payload['help_text'] = help_text
+            
+            endpoint = urljoin(self.instance_url, '/api/now/table/item_option_new')
+            response = self.session.post(endpoint, json=payload, timeout=30)
+            
+            if response.status_code == 201:
+                result = response.json()
+                variable_id = result['result']['sys_id']
+                
+                logger.info({
+                    "event": "servicenow_reference_variable_created",
+                    "catalog_id": catalog_id,
+                    "variable_name": name,
+                    "variable_id": variable_id,
+                    "reference_table": reference_table,
+                    "reference_qual_condition": reference_qual_condition,
+                    "order": order
+                })
+                
+                return {
+                    'success': True,
+                    'variable_id': variable_id,
+                    'variable_name': name,
+                    'catalog_id': catalog_id,
+                    'reference_table': reference_table,
+                    'reference_qual_condition': reference_qual_condition,
+                    'order': order,
+                    'message': f"Reference variable '{name}' created successfully"
+                }
+            else:
+                logger.error({
+                    "event": "servicenow_reference_variable_creation_failed",
+                    "catalog_id": catalog_id,
+                    "variable_name": name,
+                    "status_code": response.status_code,
+                    "response_text": response.text
+                })
+                return {
+                    'success': False,
+                    'error': f'Failed to create reference variable: {response.text}'
+                }
+                
+        except ValueError as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error({
+                "event": "servicenow_reference_variable_creation_failed",
+                "catalog_identifier": catalog_identifier,
+                "variable_name": name,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to create reference variable: {str(e)}'
+            }
     
     def _create_catalog_variables(self, catalog_id: str, variables: List[Dict[str, Any]]) -> bool:
         """
@@ -1098,6 +1181,99 @@ class ServiceNowAPI:
             label=question_text,
             default_value=default_value
         )
+
+    def add_reference_variable(self, catalog_identifier: str, variable_name: str, question_text: str, 
+                             reference_table: str, reference_qual_condition: str = "active=true") -> Dict[str, Any]:
+        """
+        Wrapper method for add_reference_variable tool.
+        
+        Args:
+            catalog_identifier: Catalog ID or name
+            variable_name: Name of the variable
+            question_text: Display text for the variable
+            reference_table: ServiceNow table to reference (e.g., "sys_user", "cmn_location")
+            reference_qual_condition: Filter condition for the reference table (default: "active=true")
+            
+        Returns:
+            Dict containing the creation result
+        """
+        return self.create_reference_variable(
+            catalog_identifier=catalog_identifier,
+            name=variable_name,
+            label=question_text,
+            reference_table=reference_table,
+            reference_qual_condition=reference_qual_condition
+        )
+
+    def link_variable_set_to_catalog(self, catalog_identifier: str, variable_set_id: str) -> Dict[str, Any]:
+        """
+        Link a variable set to a catalog item.
+        
+        Args:
+            catalog_identifier: Catalog ID or name
+            variable_set_id: Variable set sys_id to link
+            
+        Returns:
+            Dict containing the linking result
+        """
+        try:
+            catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            payload = {
+                'sc_cat_item': catalog_id,
+                'variable_set': variable_set_id
+            }
+            
+            endpoint = urljoin(self.instance_url, '/api/now/table/io_set_item')
+            response = self.session.post(endpoint, json=payload, timeout=30)
+            
+            if response.status_code == 201:
+                result = response.json()
+                link_id = result['result']['sys_id']
+                
+                logger.info({
+                    "event": "servicenow_variable_set_linked",
+                    "catalog_id": catalog_id,
+                    "variable_set_id": variable_set_id,
+                    "link_id": link_id
+                })
+                
+                return {
+                    'success': True,
+                    'link_id': link_id,
+                    'catalog_id': catalog_id,
+                    'variable_set_id': variable_set_id,
+                    'message': f"Variable set linked successfully to catalog item"
+                }
+            else:
+                logger.error({
+                    "event": "servicenow_variable_set_linking_failed",
+                    "catalog_id": catalog_id,
+                    "variable_set_id": variable_set_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text
+                })
+                return {
+                    'success': False,
+                    'error': f'Failed to link variable set: {response.text}'
+                }
+                
+        except ValueError as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        except Exception as e:
+            logger.error({
+                "event": "servicenow_variable_set_linking_failed",
+                "catalog_identifier": catalog_identifier,
+                "variable_set_id": variable_set_id,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to link variable set: {str(e)}'
+            }
     
     def test_connection(self) -> Dict[str, Any]:
         """

@@ -336,6 +336,53 @@ async def get_servicenow_catalog_types() -> Dict[str, Any]:
         }
 
 
+@function_tool
+async def link_variable_set_to_catalog(
+    catalog_identifier: str,
+    variable_set_id: str
+) -> Dict[str, Any]:
+    """
+    Link a variable set to a catalog item.
+    
+    Args:
+        catalog_identifier: Catalog ID or name
+        variable_set_id: Variable set sys_id to link
+        
+    Returns:
+        Dict containing the linking result
+    """
+    log_function_call(logger, "link_variable_set_to_catalog", 
+                     catalog_identifier=catalog_identifier,
+                     variable_set_id=variable_set_id)
+    
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                "success": False,
+                "error": "ServiceNow client not available"
+            }
+        
+        result = servicenow.link_variable_set_to_catalog(
+            catalog_identifier=catalog_identifier,
+            variable_set_id=variable_set_id
+        )
+        
+        log_function_result(logger, "link_variable_set_to_catalog", result)
+        return result
+        
+    except Exception as e:
+        log_error_with_context(logger, e, {
+            "operation": "link_variable_set_to_catalog",
+            "catalog_identifier": catalog_identifier,
+            "variable_set_id": variable_set_id
+        })
+        return {
+            "success": False,
+            "error": f"Failed to link variable set: {str(e)}"
+        }
+
+
 def get_servicenow_catalog_tools():
     """Get ServiceNow catalog creation tools for the agent."""
     return [
@@ -343,5 +390,6 @@ def get_servicenow_catalog_tools():
         create_and_publish_catalog_item,
         publish_catalog_item,
         get_servicenow_categories,
-        get_servicenow_catalog_types
+        get_servicenow_catalog_types,
+        link_variable_set_to_catalog
     ] 

@@ -78,6 +78,121 @@ class LoggingConfig:
     enable_file: bool = False
 
 
+@dataclass
+class VariableSetConfig:
+    """ServiceNow Variable Set configuration settings."""
+    # Default variable set IDs for different catalog types
+    hardware_request_set_id: str = "e5db6ac4c303665081ef1275e4013132"
+    software_request_set_id: str = "e5db6ac4c303665081ef1275e4013132"
+    access_request_set_id: str = "e5db6ac4c303665081ef1275e4013132"
+    general_request_set_id: str = "e5db6ac4c303665081ef1275e4013132"
+    
+    def get_variable_set_id_for_catalog_type(self, catalog_type: str) -> str:
+        """Get the appropriate variable set ID based on catalog type/purpose."""
+        catalog_type_lower = catalog_type.lower()
+        
+        if any(keyword in catalog_type_lower for keyword in ['hardware', 'laptop', 'desktop', 'equipment', 'device']):
+            return self.hardware_request_set_id
+        elif any(keyword in catalog_type_lower for keyword in ['software', 'application', 'license']):
+            return self.software_request_set_id
+        elif any(keyword in catalog_type_lower for keyword in ['access', 'permission', 'role', 'group']):
+            return self.access_request_set_id
+        else:
+            return self.general_request_set_id
+
+
+@dataclass
+class WaitToolsConfig:
+    """Configuration for tools that should show wait messages and are available to agents."""
+    # Tools that trigger wait messages and are available to each agent
+    # Uncomment the tools you want to enable for each agent
+    agent_wait_tools: Dict[str, list[str]] = None
+    
+    def __post_init__(self):
+        if self.agent_wait_tools is None:
+            self.agent_wait_tools = {
+                "ServiceNowCatalogCreationAgent": [
+                    # Create/Modify Tools (show wait messages)
+                    "create_catalog_item",                    # Create new catalog item
+                    "create_and_publish_catalog_item",        # Create and publish catalog item
+                    "publish_catalog_item",                   # Publish existing catalog item
+                    #"create_string_variable",                 # Add string variable to catalog
+                    #"create_boolean_variable",                # Add boolean variable to catalog
+                    #"create_choice_variable",                 # Add choice/dropdown variable to catalog
+                    #"create_multiple_choice_variable",        # Add multiple choice variable to catalog
+                    #"create_date_variable",                   # Add date variable to catalog
+                    
+                    # Get/Read Tools (no wait messages, but controlled access)
+                    # "search_catalog_items",                # Search for catalog items by name/number
+                    # "list_catalog_items",                  # List catalog items with optional category filter
+                    # "get_catalog_details",                 # Get detailed info about a specific catalog item
+                     "get_servicenow_categories",           # Get available ServiceNow categories
+                    # "get_servicenow_catalog_types",        # Get available ServiceNow catalog types
+                ],
+                "AzureVMAgent": [
+                    # Create/Modify Tools (show wait messages)
+                    #"create_vm",                             # Create new virtual machine
+                    #"start_vm",                              # Start a virtual machine
+                    #"stop_vm",                               # Stop a virtual machine
+                    #"delete_vm",                             # Delete a virtual machine
+                    
+                    # Get/Read Tools (no wait messages, but controlled access)
+                    # "list_vms",                           # List all VMs in the resource group
+                    # "get_vm_status",                      # Get detailed status of a specific VM
+                ],
+                "ServiceNowVariablesAgent": [
+                    # Create/Modify Tools (show wait messages)
+                    #"create_string_variable",                 # Add string variable to catalog
+                    #"create_boolean_variable",                # Add boolean variable to catalog
+                    #"create_choice_variable",                 # Add choice/dropdown variable to catalog
+                    #"create_multiple_choice_variable",        # Add multiple choice variable to catalog
+                    #"create_date_variable",                   # Add date variable to catalog
+                    #"publish_catalog_item",                   # Publish catalog item after adding variables
+                    
+                    # Get/Read Tools (no wait messages, but controlled access)
+                    # "search_catalog_items",                # Search for catalog items by name/number
+                    # "list_catalog_items",                  # List catalog items with optional category filter
+                    # "get_catalog_details",                 # Get detailed info about a specific catalog item
+                    # "get_servicenow_variable_types",       # Get available ServiceNow variable types
+                ],
+                "ConciergeAgent": [
+                    # Get/Read Tools (no wait messages, but controlled access)
+                    # "search_catalog_items",                # Search for catalog items by name/number
+                    # "list_catalog_items",                  # List catalog items with optional category filter
+                    # "get_catalog_details",                 # Get detailed info about a specific catalog item
+                    # "get_servicenow_categories",           # Get available ServiceNow categories
+                    # "get_servicenow_catalog_types",        # Get available ServiceNow catalog types
+                    # "get_servicenow_variable_types",       # Get available ServiceNow variable types
+                    # "list_vms",                           # List all VMs in the resource group
+                    # "get_vm_status",                      # Get detailed status of a specific VM
+                ]
+            }
+    
+    def get_wait_tools_for_agent(self, agent_name: str) -> list[str]:
+        """Get the list of wait tools for a specific agent."""
+        return self.agent_wait_tools.get(agent_name, [])
+    
+    def is_wait_tool(self, agent_name: str, tool_name: str) -> bool:
+        """Check if a tool should trigger a wait message for a specific agent."""
+        wait_tools = self.get_wait_tools_for_agent(agent_name)
+        return tool_name in wait_tools
+    
+    def add_wait_tool(self, agent_name: str, tool_name: str) -> None:
+        """Add a tool to the wait list for a specific agent."""
+        if agent_name not in self.agent_wait_tools:
+            self.agent_wait_tools[agent_name] = []
+        if tool_name not in self.agent_wait_tools[agent_name]:
+            self.agent_wait_tools[agent_name].append(tool_name)
+    
+    def remove_wait_tool(self, agent_name: str, tool_name: str) -> None:
+        """Remove a tool from the wait list for a specific agent."""
+        if agent_name in self.agent_wait_tools and tool_name in self.agent_wait_tools[agent_name]:
+            self.agent_wait_tools[agent_name].remove(tool_name)
+
+
+
+
+
 class Settings:
     """
     Main settings class that aggregates all configuration.
@@ -144,6 +259,29 @@ class Settings:
             enable_console=self._get_env("LOG_ENABLE_CONSOLE", default="true").lower() == "true",
             enable_file=self._get_env("LOG_ENABLE_FILE", default="false").lower() == "true"
         )
+        
+        # Wait Tools Configuration
+        self.wait_tools = WaitToolsConfig()
+        
+        # Allow environment variable override for wait tools (optional)
+        wait_tools_env = self._get_env("WAIT_TOOLS_CONFIG", required=False)
+        if wait_tools_env:
+            try:
+                import json
+                custom_wait_tools = json.loads(wait_tools_env)
+                self.wait_tools.agent_wait_tools.update(custom_wait_tools)
+            except (json.JSONDecodeError, ValueError) as e:
+                logger.warning(f"Invalid WAIT_TOOLS_CONFIG environment variable: {e}")
+        
+        # Variable Set Configuration
+        self.variable_sets = VariableSetConfig(
+            hardware_request_set_id=self._get_env("HARDWARE_REQUEST_SET_ID", default="e5db6ac4c303665081ef1275e4013132"),
+            software_request_set_id=self._get_env("SOFTWARE_REQUEST_SET_ID", default="e5db6ac4c303665081ef1275e4013132"),
+            access_request_set_id=self._get_env("ACCESS_REQUEST_SET_ID", default="e5db6ac4c303665081ef1275e4013132"),
+            general_request_set_id=self._get_env("GENERAL_REQUEST_SET_ID", default="e5db6ac4c303665081ef1275e4013132")
+        )
+        
+
     
     def _get_env(self, key: str, default: Optional[str] = None, required: bool = True) -> str:
         """

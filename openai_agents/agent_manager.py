@@ -12,7 +12,7 @@ import uuid
 from datetime import datetime
 from typing import Dict, Any, Optional, List
 
-from agents import Agent, Runner, trace, RunContextWrapper, TResponseInputItem
+from agents import Agent, Runner, trace, RunContextWrapper, TResponseInputItem, RunHooks
 from pydantic import BaseModel
 
 from config.settings import settings
@@ -147,6 +147,49 @@ AGENT_LOOKUP = {
 state_manager = get_agent_state_manager()
 
 
+class WaitNotificationHooks(RunHooks):
+    """Hooks for sending wait notifications when long-running tools start."""
+    
+    def __init__(self, user_id: str = "", room_id: str = "", message_callback=None):
+        self.user_id = user_id
+        self.room_id = room_id
+        self.message_callback = message_callback  # Callback function to send messages
+        self.notified_tools = set()  # Track which tools we've already notified for
+        
+    async def on_tool_start(self, context, agent, tool):
+        # Check if this tool is enabled for this agent
+        if not settings.wait_tools.is_wait_tool(agent.name, tool.name):
+            # Tool is not enabled for this agent - this should be handled by tool filtering
+            logger.warning(f"Tool {tool.name} not enabled for agent {agent.name}")
+            return
+            
+        # Check if this tool should trigger a wait message (create/modify tools)
+        create_modify_tools = [
+            "create_catalog_item", "create_and_publish_catalog_item", "publish_catalog_item",
+            "create_string_variable", "create_boolean_variable", "create_choice_variable",
+            "create_multiple_choice_variable", "create_date_variable",
+            "create_vm", "start_vm", "stop_vm", "delete_vm"
+        ]
+        
+        should_show_wait = tool.name in create_modify_tools
+        
+        if should_show_wait and tool.name not in self.notified_tools:
+            self.notified_tools.add(tool.name)
+            
+            # Send wait message if callback is available
+            if self.message_callback:
+                try:
+                    await self.message_callback("While I am on it, please wait...")
+                except Exception as e:
+                    logger.warning(f"Failed to send wait message: {e}")
+            else:
+                # For CLI testing, just log the wait message
+                logger.info(f"⏳ {agent.name} is working on {tool.name}... Please wait.")
+
+
+
+
+
 async def process_user_message(user_id: str, room_id: str = "default", message: str = "", user_name: Optional[str] = None) -> str:
     """
     Process a user message with persistent agent state and conversation history.
@@ -269,12 +312,16 @@ Just type your question or request normally to get started!
             current_agent=current_agent_name
         )
         
-        # 6. Run the agent with conversation history
+        # 6. Create wait notification hooks (no message callback for CLI/testing)
+        hooks = WaitNotificationHooks(user_id=user_id, room_id=room_id)
+        
+        # 7. Run the agent with conversation history and hooks
         input_data = conversation_history + [{"role": "user", "content": message}]
         result = await Runner.run(
             starting_agent=starting_agent,
             input=input_data,
             context=context,
+            hooks=hooks,
             max_turns=10
         )
         

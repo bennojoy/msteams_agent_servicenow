@@ -448,6 +448,113 @@ async def publish_catalog_item(catalog_identifier: str) -> Dict[str, Any]:
 
 
 @function_tool
+async def add_reference_variable(
+    catalog_identifier: str,
+    variable_name: str,
+    question_text: str,
+    reference_table: str,
+    reference_qual_condition: str = "active=true"
+) -> Dict[str, Any]:
+    """
+    Add a Reference variable to a catalog item.
+    
+    Args:
+        catalog_identifier: Catalog ID or name
+        variable_name: Name of the variable
+        question_text: Display text for the variable
+        reference_table: ServiceNow table to reference (e.g., "sys_user", "cmn_location")
+        reference_qual_condition: Filter condition for the reference table (default: "active=true")
+        
+    Returns:
+        Dict containing the creation result
+    """
+    log_function_call(logger, "add_reference_variable", 
+                     catalog_identifier=catalog_identifier,
+                     variable_name=variable_name,
+                     question_text=question_text,
+                     reference_table=reference_table,
+                     reference_qual_condition=reference_qual_condition)
+    
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                "success": False,
+                "error": "ServiceNow client not available"
+            }
+        
+        result = servicenow.add_reference_variable(
+            catalog_identifier=catalog_identifier,
+            variable_name=variable_name,
+            question_text=question_text,
+            reference_table=reference_table,
+            reference_qual_condition=reference_qual_condition
+        )
+        
+        log_function_result(logger, "add_reference_variable", result)
+        return result
+        
+    except Exception as e:
+        log_error_with_context(logger, e, {
+            "operation": "add_reference_variable",
+            "catalog_identifier": catalog_identifier,
+            "variable_name": variable_name,
+            "reference_table": reference_table
+        })
+        return {
+            "success": False,
+            "error": f"Failed to add reference variable: {str(e)}"
+        }
+
+
+@function_tool
+async def link_variable_set_to_catalog(
+    catalog_identifier: str,
+    variable_set_id: str
+) -> Dict[str, Any]:
+    """
+    Link a variable set to a catalog item.
+    
+    Args:
+        catalog_identifier: Catalog ID or name
+        variable_set_id: Variable set sys_id to link
+        
+    Returns:
+        Dict containing the linking result
+    """
+    log_function_call(logger, "link_variable_set_to_catalog", 
+                     catalog_identifier=catalog_identifier,
+                     variable_set_id=variable_set_id)
+    
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                "success": False,
+                "error": "ServiceNow client not available"
+            }
+        
+        result = servicenow.link_variable_set_to_catalog(
+            catalog_identifier=catalog_identifier,
+            variable_set_id=variable_set_id
+        )
+        
+        log_function_result(logger, "link_variable_set_to_catalog", result)
+        return result
+        
+    except Exception as e:
+        log_error_with_context(logger, e, {
+            "operation": "link_variable_set_to_catalog",
+            "catalog_identifier": catalog_identifier,
+            "variable_set_id": variable_set_id
+        })
+        return {
+            "success": False,
+            "error": f"Failed to link variable set: {str(e)}"
+        }
+
+
+@function_tool
 async def get_servicenow_variable_types() -> Dict[str, Any]:
     """
     Get available ServiceNow variable types and their descriptions.
@@ -485,6 +592,11 @@ async def get_servicenow_variable_types() -> Dict[str, Any]:
                     "description": "Date picker",
                     "type_code": "9",
                     "display": "Date"
+                },
+                "reference": {
+                    "description": "Reference to another ServiceNow table",
+                    "type_code": "8",
+                    "display": "Reference"
                 }
             }
         }
@@ -513,6 +625,9 @@ def get_servicenow_variables_tools():
         add_multiple_choice_variable,
         add_select_box_variable,
         add_date_variable,
+        add_reference_variable,
+        # Variable set tools
+        link_variable_set_to_catalog,
         # Publishing tool
         publish_catalog_item,
         # Variable types tool
