@@ -345,10 +345,14 @@ class ServiceNowAPI:
             }
 
     def create_string_variable(self, catalog_identifier: str, name: str, label: str, required: bool = False, 
-                             default_value: str = None, help_text: str = None) -> Dict[str, Any]:
+                             default_value: str = None, help_text: str = None, order: int = None) -> Dict[str, Any]:
         """Create a string variable for a catalog item."""
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -357,7 +361,7 @@ class ServiceNowAPI:
                 'question_text': label,
                 'mandatory': 'true' if required else 'false',
                 'active': 'true',
-                'order': '100'
+                'order': str(order)
             }
             
             if help_text:
@@ -376,7 +380,8 @@ class ServiceNowAPI:
                     "event": "servicenow_string_variable_created",
                     "catalog_id": catalog_id,
                     "variable_name": name,
-                    "variable_id": variable_id
+                    "variable_id": variable_id,
+                    "order": order
                 })
                 
                 return {
@@ -384,6 +389,7 @@ class ServiceNowAPI:
                     'variable_id': variable_id,
                     'variable_name': name,
                     'catalog_id': catalog_id,
+                    'order': order,
                     'message': f"String variable '{name}' created successfully"
                 }
             else:
@@ -417,10 +423,14 @@ class ServiceNowAPI:
             }
 
     def create_boolean_variable(self, catalog_identifier: str, name: str, label: str, required: bool = False,
-                              default_value: bool = False, help_text: str = None) -> Dict[str, Any]:
+                              default_value: bool = False, help_text: str = None, order: int = None) -> Dict[str, Any]:
         """Create a boolean variable for a catalog item."""
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -429,7 +439,7 @@ class ServiceNowAPI:
                 'question_text': label,
                 'mandatory': 'true' if required else 'false',
                 'active': 'true',
-                'order': '100',
+                'order': str(order),
                 'default_value': 'true' if default_value else 'false'
             }
             
@@ -447,7 +457,8 @@ class ServiceNowAPI:
                     "event": "servicenow_boolean_variable_created",
                     "catalog_id": catalog_id,
                     "variable_name": name,
-                    "variable_id": variable_id
+                    "variable_id": variable_id,
+                    "order": order
                 })
                 
                 return {
@@ -455,6 +466,7 @@ class ServiceNowAPI:
                     'variable_id': variable_id,
                     'variable_name': name,
                     'catalog_id': catalog_id,
+                    'order': order,
                     'message': f"Boolean variable '{name}' created successfully"
                 }
             else:
@@ -488,10 +500,14 @@ class ServiceNowAPI:
             }
 
     def create_choice_variable(self, catalog_identifier: str, name: str, label: str, choices: List[str],
-                             required: bool = False, default_value: str = None, help_text: str = None) -> Dict[str, Any]:
+                             required: bool = False, default_value: str = None, help_text: str = None, order: int = None) -> Dict[str, Any]:
         """Create a choice variable (select box) for a catalog item."""
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -500,7 +516,7 @@ class ServiceNowAPI:
                 'question_text': label,
                 'mandatory': 'true' if required else 'false',
                 'active': 'true',
-                'order': '100'
+                'order': str(order)
             }
             
             if help_text:
@@ -524,7 +540,8 @@ class ServiceNowAPI:
                     "catalog_id": catalog_id,
                     "variable_name": name,
                     "variable_id": variable_id,
-                    "choices_created": choices_created
+                    "choices_created": choices_created,
+                    "order": order
                 })
                 
                 return {
@@ -532,6 +549,7 @@ class ServiceNowAPI:
                     'variable_id': variable_id,
                     'variable_name': name,
                     'catalog_id': catalog_id,
+                    'order': order,
                     'choices_created': choices_created,
                     'message': f"Select box variable '{name}' created successfully with {len(choices)} choices"
                 }
@@ -566,10 +584,14 @@ class ServiceNowAPI:
             }
 
     def create_multiple_choice_variable(self, catalog_identifier: str, name: str, label: str, choices: List[str],
-                                      required: bool = False, default_value: str = None, help_text: str = None) -> Dict[str, Any]:
+                                      required: bool = False, default_value: str = None, help_text: str = None, order: int = None) -> Dict[str, Any]:
         """Create a multiple choice variable (radio buttons) for a catalog item."""
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -578,7 +600,7 @@ class ServiceNowAPI:
                 'question_text': label,
                 'mandatory': 'true' if required else 'false',
                 'active': 'true',
-                'order': '100'
+                'order': str(order)
             }
             
             if help_text:
@@ -602,7 +624,8 @@ class ServiceNowAPI:
                     "catalog_id": catalog_id,
                     "variable_name": name,
                     "variable_id": variable_id,
-                    "choices_created": choices_created
+                    "choices_created": choices_created,
+                    "order": order
                 })
                 
                 return {
@@ -610,6 +633,7 @@ class ServiceNowAPI:
                     'variable_id': variable_id,
                     'variable_name': name,
                     'catalog_id': catalog_id,
+                    'order': order,
                     'choices_created': choices_created,
                     'message': f"Multiple choice variable '{name}' created successfully with {len(choices)} choices"
                 }
@@ -644,10 +668,14 @@ class ServiceNowAPI:
             }
 
     def create_date_variable(self, catalog_identifier: str, name: str, label: str, required: bool = False,
-                           default_value: str = None, help_text: str = None) -> Dict[str, Any]:
+                           default_value: str = None, help_text: str = None, order: int = None) -> Dict[str, Any]:
         """Create a date variable for a catalog item."""
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Get the order number (auto-calculate if not provided)
+            if order is None:
+                order = self.get_next_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -656,7 +684,7 @@ class ServiceNowAPI:
                 'question_text': label,
                 'mandatory': 'true' if required else 'false',
                 'active': 'true',
-                'order': '100'
+                'order': str(order)
             }
             
             if help_text:
@@ -676,7 +704,8 @@ class ServiceNowAPI:
                     "event": "servicenow_date_variable_created",
                     "catalog_id": catalog_id,
                     "variable_name": name,
-                    "variable_id": variable_id
+                    "variable_id": variable_id,
+                    "order": order
                 })
                 
                 return {
@@ -684,6 +713,7 @@ class ServiceNowAPI:
                     'variable_id': variable_id,
                     'variable_name': name,
                     'catalog_id': catalog_id,
+                    'order': order,
                     'message': f"Date variable '{name}' created successfully"
                 }
             else:
@@ -1201,6 +1231,96 @@ class ServiceNowAPI:
                 "success": False,
                 "error": f"Error fetching catalog types: {str(e)}"
             }
+
+    def get_max_order_for_catalog_item(self, catalog_identifier: str) -> int:
+        """
+        Get the maximum order number for existing variables in a catalog item.
+        
+        Args:
+            catalog_identifier: Catalog item ID or number
+            
+        Returns:
+            Maximum order number (defaults to 100 if no variables exist)
+        """
+        try:
+            # First get the catalog item ID
+            catalog_info = self.get_catalog_by_name_or_number(catalog_identifier)
+            if not catalog_info['success']:
+                logger.warning({
+                    "event": "catalog_not_found_for_order_check",
+                    "catalog_identifier": catalog_identifier
+                })
+                return 100  # Default starting order
+            
+            catalog_id = catalog_info['catalog_id']
+            
+            # Query existing variables for this catalog item
+            endpoint = urljoin(self.instance_url, f'/api/now/table/sc_item_option?sysparm_query=cat_item={catalog_id}&sysparm_fields=order')
+            response = self.session.get(endpoint, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                variables = result.get('result', [])
+                
+                if not variables:
+                    return 100  # No existing variables, start at 100
+                
+                # Find the maximum order number
+                max_order = 100  # Default minimum
+                for var in variables:
+                    try:
+                        order = int(var.get('order', 100))
+                        max_order = max(max_order, order)
+                    except (ValueError, TypeError):
+                        continue  # Skip invalid order values
+                
+                logger.info({
+                    "event": "max_order_calculated",
+                    "catalog_id": catalog_id,
+                    "max_order": max_order,
+                    "variable_count": len(variables)
+                })
+                
+                return max_order
+            else:
+                logger.warning({
+                    "event": "failed_to_get_variables_for_order",
+                    "catalog_id": catalog_id,
+                    "status_code": response.status_code
+                })
+                return 100  # Default on error
+                
+        except Exception as e:
+            logger.error({
+                "event": "get_max_order_failed",
+                "catalog_identifier": catalog_identifier,
+                "error": str(e)
+            })
+            return 100  # Default on error
+
+    def get_next_order_for_catalog_item(self, catalog_identifier: str, increment: int = 10) -> int:
+        """
+        Get the next available order number for a catalog item.
+        
+        Args:
+            catalog_identifier: Catalog item ID or number
+            increment: Amount to increment by (default 10)
+            
+        Returns:
+            Next available order number
+        """
+        max_order = self.get_max_order_for_catalog_item(catalog_identifier)
+        next_order = max_order + increment
+        
+        logger.info({
+            "event": "next_order_calculated",
+            "catalog_identifier": catalog_identifier,
+            "max_order": max_order,
+            "next_order": next_order,
+            "increment": increment
+        })
+        
+        return next_order
 
 
 # Global ServiceNow API client instance

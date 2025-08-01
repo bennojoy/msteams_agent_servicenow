@@ -120,7 +120,7 @@ class Settings:
         self.azure = AzureConfig(
             subscription_id=self._get_env("AZURE_SUBSCRIPTION_ID", default="test_subscription"),
             resource_group=self._get_env("AZURE_RESOURCE_GROUP", default="test_resource_group"),
-            location=self._get_env("AZURE_LOCATION", default="eastus"),
+            location=self._get_env("AZURE_LOCATION", default="australiaeast"),
             client_id=self._get_env("AZURE_CLIENT_ID", required=False),
             client_secret=self._get_env("AZURE_CLIENT_SECRET", required=False),
             tenant_id=self._get_env("AZURE_TENANT_ID", required=False)

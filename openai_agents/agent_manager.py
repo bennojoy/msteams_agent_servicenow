@@ -101,24 +101,28 @@ conversation_manager = ConversationHistoryManager()
 concierge_agent = Agent[UserContext](
     name="ConciergeAgent",
     instructions=concierge_agent_instructions,
+    model="gpt-4o-mini",
     handoffs=[]  # Will be set after all agents are created
 )
 azure_vm_agent = Agent[UserContext](
     name="AzureVMAgent",
     instructions=azure_vm_agent_instructions,
     tools=get_azure_vm_tools(),
+    model="gpt-4o-mini",
     handoffs=[]  # Will be set after all agents are created
 )
 servicenow_variables_agent = Agent[UserContext](
     name="ServiceNowVariablesAgent",
     instructions=servicenow_variables_agent_instructions,
     tools=get_servicenow_variables_tools(),
+    model="gpt-4o-mini",
     handoffs=[]  # Will be set after all agents are created
 )
 servicenow_catalog_creation_agent = Agent[UserContext](
     name="ServiceNowCatalogCreationAgent",
     instructions=servicenow_catalog_creation_agent_instructions,
     tools=get_servicenow_catalog_tools(),
+    model="gpt-4o-mini",
     handoffs=[]  # Will be set after all agents are created
 )
 
@@ -160,6 +164,84 @@ async def process_user_message(user_id: str, room_id: str = "default", message: 
                      user_id=user_id, room_id=room_id, message_length=len(message))
     
     try:
+        # Check for special commands first
+        message_lower = message.strip().lower()
+        
+        if message_lower == "/reset":
+            # Clear conversation history and reset to concierge agent
+            conversation_manager.clear_conversation(user_id)
+            state_manager.set_current_agent(user_id, "ConciergeAgent")
+            logger.info({
+                "event": "conversation_reset",
+                "user_id": user_id,
+                "command": "/reset"
+            })
+            return "🔄 **Conversation reset!** I'm now your concierge assistant. How can I help you today?"
+        
+        elif message_lower == "/help":
+            # Show available commands
+            help_text = """
+🤖 **Available Commands:**
+
+**/reset** - Clear conversation history and switch to concierge agent
+**/help** - Show this help message
+**/status** - Show current agent and conversation stats
+**/clear** - Clear conversation history (keep current agent)
+**/agents** - List available agents
+
+**Available Agents:**
+• **Concierge** - General assistance and questions
+• **Azure VM** - Create and manage Azure virtual machines
+• **ServiceNow Catalog** - Create ServiceNow catalog items
+• **ServiceNow Variables** - Add variables to catalog items
+
+Just type your question or request normally to get started!
+            """
+            return help_text.strip()
+        
+        elif message_lower == "/status":
+            # Show current status
+            current_agent = state_manager.get_current_agent(user_id)
+            conversation_count = len(conversation_manager.get_conversation_history(user_id))
+            stats = state_manager.get_stats()
+            
+            status_text = f"""
+📊 **Current Status:**
+
+**User ID:** {user_id}
+**Current Agent:** {current_agent}
+**Messages in Conversation:** {conversation_count}
+**Total Conversations:** {stats.get('total_conversations', 0)}
+**Active Users:** {stats.get('active_users', 0)}
+            """
+            return status_text.strip()
+        
+        elif message_lower == "/clear":
+            # Clear conversation history but keep current agent
+            conversation_manager.clear_conversation(user_id)
+            current_agent = state_manager.get_current_agent(user_id)
+            logger.info({
+                "event": "conversation_cleared",
+                "user_id": user_id,
+                "command": "/clear",
+                "current_agent": current_agent
+            })
+            return f"🗑️ **Conversation history cleared!** I'm still your {current_agent} assistant. What would you like to do?"
+        
+        elif message_lower == "/agents":
+            # List available agents
+            agents_text = """
+🤖 **Available Agents:**
+
+**ConciergeAgent** - General assistance, questions, and help
+**AzureVMAgent** - Create, manage, and monitor Azure virtual machines
+**ServiceNowCatalogCreationAgent** - Create and publish ServiceNow catalog items
+**ServiceNowVariablesAgent** - Add variables and fields to catalog items
+
+**Usage:** Just ask me to help with any of these tasks, and I'll automatically switch to the right agent!
+            """
+            return agents_text.strip()
+        
         # 1. Get the current agent for this user
         current_agent_name = state_manager.get_current_agent(user_id)
         

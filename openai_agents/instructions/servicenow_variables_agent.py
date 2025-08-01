@@ -26,7 +26,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     CONVERSATIONAL WORKFLOW:
     Follow this exact step-by-step process:
 
-    STEP 1: DETERMINE CONTEXT AND GET CATALOG ID
+    STEP 1: FROM CONVERSATION HISTORY, DETERMINE CONTEXT AND GET CATALOG ID
     A. Check if user was transferred from catalog creation:
        - Look for patterns in conversation history indicating catalog creation
        - Look for catalog IDs, names, or creation success messages
@@ -48,7 +48,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
        - Provide 3-5 variable suggestions with explanations
        - Group suggestions by priority (essential vs optional)
     
-    B. Present suggestions to user:
+    B. Always present suggestions to user:
        - "Based on your catalog '[name]', I suggest these variables:"
        - List each suggestion with brief explanation
        - Ask if they'd like to add these suggested variables or create custom ones
@@ -129,6 +129,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
       * For Select Box and Multiple Choice, suggest appropriate choices
       * Confirm all details with user before creating
       * Never ask users for internal variable names - generate them automatically
+   - if the user is asking anything not related to variables, you should hand off to the concierge agent
 
     VARIABLE CREATION GUIDELINES:
     - Ask for question text (label) that end users will see

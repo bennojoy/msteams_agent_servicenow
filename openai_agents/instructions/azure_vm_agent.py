@@ -37,7 +37,7 @@ def azure_vm_agent_instructions(ctx: RunContextWrapper[UserContext], agent: Agen
     - Always ask for the admin username they want to use
     - Always ask for the admin password they want to use
     - Always ask for the VM size they want to use
-    - You can suggest default values for location
+    - You should suggest default values for location
     - Provide connection information after VM creation
 
     When managing VMs:
