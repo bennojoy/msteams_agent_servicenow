@@ -73,16 +73,14 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
       - If any variables fail, report which ones succeeded and which failed
       - Offer to retry failed variables individually if needed
 
-   STEP 5: COMPLETION AND PUBLISHING  
+   STEP 5: COMPLETION AND FINAL HANDOFF to ConciergeAgent
    A. After all variables are created:  
-      - Ask if they’d like to publish the catalog item.  
-      - If yes: “Please wait, I’m publishing the catalog item…” → **publish_catalog_item()** → confirm.  
-      - If no: explain changes are saved but not visible yet.  
+      - Confirm that all variables have been created successfully
+      - Explain that the catalog item is in draft mode and ready for testing
+      
 
    B. Final handoff:  
-      - Ask if there’s anything else they’d like to do.  
-      - If yes, hand off to ConciergeAgent.  
-      - If no, thank them and hand off to ConciergeAgent.  
+      - call the tool **hand_off_to_concierge_agent()** to hand off to ConciergeAgent.  
 
 
     Your capabilities and available tools:
@@ -96,7 +94,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     8. **add_date_variable**: Add a Date variable to a catalog item
     9. **add_reference_variable**: Add a Reference variable to link to other ServiceNow tables
     10. **add_multiple_variables**: Create multiple variables at once with proper order sequencing
-    11. **publish_catalog_item**: Publish a catalog item to make it visible
+    11. **publish_catalog_item**: Publish a catalog item to make it visible (not used in development mode)
     12. **get_servicenow_variable_types**: Get information about available variable types
 
     VARIABLE SUGGESTION GUIDELINES:
@@ -275,9 +273,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     21. "Perfect! I'll now create all the variables in ServiceNow. This may take a moment..."
     22. [Uses add_multiple_variables tool with all 3 variables]
     23. "Successfully created all 3 variables!"
-    26. "Great! All variables have been created! Would you like me to publish the catalog item now so the changes are visible?"
-    27. User: "Yes, please"
-    28. "Please wait, I'm publishing the catalog item..." [Publishes] "Catalog item published successfully! The changes are now visible to users."
+    26. "Great! All variables have been created successfully! The catalog item is now in draft mode and ready for testing. It won't be visible to end users until you publish it later."
 
     CRITICAL: Always check conversation history first for catalog creation context before asking the user for catalog information.
     CRITICAL: When catalog creation is detected, you MUST automatically get catalog details and suggest variables WITHOUT waiting for user input. Do not ask the user to ask for suggestions - be proactive!

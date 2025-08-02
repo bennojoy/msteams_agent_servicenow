@@ -11,6 +11,7 @@ import requests
 from typing import Dict, Any, List, Optional
 from requests.auth import HTTPBasicAuth
 from urllib.parse import urljoin
+import random
 
 from config.settings import settings
 from utils.logger import get_logger, log_function_call, log_function_result, log_error_with_context
@@ -350,9 +351,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -428,9 +429,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -505,9 +506,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -589,9 +590,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -673,9 +674,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -753,9 +754,9 @@ class ServiceNowAPI:
         try:
             catalog_id = self._resolve_catalog_id(catalog_identifier)
             
-            # Get the order number (auto-calculate if not provided)
+            # Get the order number (use random ordering to avoid race conditions)
             if order is None:
-                order = self.get_next_order_for_catalog_item(catalog_identifier)
+                order = self.get_random_order_for_catalog_item(catalog_identifier)
             
             payload = {
                 'cat_item': catalog_id,
@@ -1497,6 +1498,39 @@ class ServiceNowAPI:
         })
         
         return next_order
+
+    def get_random_order_for_catalog_item(self, catalog_identifier: str, min_order: int = 1001, max_order: int = 1100) -> int:
+        """
+        Get a random order number for a catalog item to avoid race conditions.
+        
+        Args:
+            catalog_identifier: Catalog item ID or number
+            min_order: Minimum order number (default 1001)
+            max_order: Maximum order number (default 1100)
+            
+        Returns:
+            Random order number between min_order and max_order
+        """
+        try:
+            # Generate a random order number
+            random_order = random.randint(min_order, max_order)
+            
+            logger.info({
+                "event": "random_order_generated",
+                "catalog_identifier": catalog_identifier,
+                "random_order": random_order,
+                "range": f"{min_order}-{max_order}"
+            })
+            
+            return random_order
+            
+        except Exception as e:
+            logger.error({
+                "event": "random_order_generation_failed",
+                "catalog_identifier": catalog_identifier,
+                "error": str(e)
+            })
+            return min_order  # Fallback to minimum order
 
     def create_multiple_variables(self, catalog_identifier: str, variables: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
