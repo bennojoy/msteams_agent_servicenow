@@ -147,6 +147,7 @@ class WaitToolsConfig:
                     #"create_choice_variable",                 # Add choice/dropdown variable to catalog
                     #"create_multiple_choice_variable",        # Add multiple choice variable to catalog
                     #"create_date_variable",                   # Add date variable to catalog
+                    "add_multiple_variables",                 # Create multiple variables at once with proper ordering
                     #"publish_catalog_item",                   # Publish catalog item after adding variables
                     
                     # Get/Read Tools (no wait messages, but controlled access)

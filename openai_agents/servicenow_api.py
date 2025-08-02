@@ -1498,6 +1498,220 @@ class ServiceNowAPI:
         
         return next_order
 
+    def create_multiple_variables(self, catalog_identifier: str, variables: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Create multiple variables for a catalog item with proper order sequencing.
+        
+        Args:
+            catalog_identifier: Catalog item ID or number
+            variables: List of variable definitions, each containing:
+                - 'type': Variable type ('string', 'boolean', 'choice', 'multiple_choice', 'date', 'reference')
+                - 'name': Variable name
+                - 'label': Question text/label
+                - 'required': Whether variable is required (default False)
+                - 'default_value': Default value (optional)
+                - 'help_text': Help text (optional)
+                - 'choices': List of choices for choice/multiple_choice variables (optional)
+                - 'reference_table': Reference table for reference variables (optional)
+                - 'reference_qual_condition': Reference qualifier condition (optional)
+                
+        Returns:
+            Dictionary with success status and results
+        """
+        try:
+            catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Calculate starting order number
+            start_order = self.get_next_order_for_catalog_item(catalog_identifier)
+            
+            results = {
+                'success': True,
+                'catalog_id': catalog_id,
+                'variables_created': [],
+                'variables_failed': [],
+                'total_requested': len(variables),
+                'total_created': 0,
+                'total_failed': 0
+            }
+            
+            logger.info({
+                "event": "batch_variable_creation_started",
+                "catalog_id": catalog_id,
+                "variable_count": len(variables),
+                "start_order": start_order
+            })
+            
+            # Create variables sequentially with calculated orders
+            for i, var_data in enumerate(variables):
+                current_order = start_order + (i * 10)  # Increment by 10 for each variable
+                
+                try:
+                    var_type = var_data.get('type', '').lower()
+                    var_name = var_data.get('name', '')
+                    var_label = var_data.get('label', '')
+                    var_required = var_data.get('required', False)
+                    var_default = var_data.get('default_value')
+                    var_help = var_data.get('help_text')
+                    
+                    # Create variable based on type
+                    if var_type == 'string':
+                        result = self.create_string_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            required=var_required,
+                            default_value=var_default,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    elif var_type == 'boolean':
+                        result = self.create_boolean_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            required=var_required,
+                            default_value=var_default,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    elif var_type == 'choice':
+                        choices = var_data.get('choices', [])
+                        result = self.create_choice_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            choices=choices,
+                            required=var_required,
+                            default_value=var_default,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    elif var_type == 'multiple_choice':
+                        choices = var_data.get('choices', [])
+                        result = self.create_multiple_choice_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            choices=choices,
+                            required=var_required,
+                            default_value=var_default,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    elif var_type == 'date':
+                        result = self.create_date_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            required=var_required,
+                            default_value=var_default,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    elif var_type == 'reference':
+                        reference_table = var_data.get('reference_table', '')
+                        reference_qual_condition = var_data.get('reference_qual_condition', 'active=true')
+                        result = self.create_reference_variable(
+                            catalog_identifier=catalog_identifier,
+                            name=var_name,
+                            label=var_label,
+                            reference_table=reference_table,
+                            reference_qual_condition=reference_qual_condition,
+                            required=var_required,
+                            help_text=var_help,
+                            order=current_order
+                        )
+                    else:
+                        raise ValueError(f"Unsupported variable type: {var_type}")
+                    
+                    # Track result
+                    if result.get('success'):
+                        results['variables_created'].append({
+                            'name': var_name,
+                            'type': var_type,
+                            'order': current_order,
+                            'variable_id': result.get('variable_id'),
+                            'message': result.get('message')
+                        })
+                        results['total_created'] += 1
+                        
+                        logger.info({
+                            "event": "batch_variable_created",
+                            "catalog_id": catalog_id,
+                            "variable_name": var_name,
+                            "variable_type": var_type,
+                            "order": current_order,
+                            "variable_id": result.get('variable_id')
+                        })
+                    else:
+                        results['variables_failed'].append({
+                            'name': var_name,
+                            'type': var_type,
+                            'order': current_order,
+                            'error': result.get('error')
+                        })
+                        results['total_failed'] += 1
+                        
+                        logger.error({
+                            "event": "batch_variable_failed",
+                            "catalog_id": catalog_id,
+                            "variable_name": var_name,
+                            "variable_type": var_type,
+                            "order": current_order,
+                            "error": result.get('error')
+                        })
+                        
+                except Exception as e:
+                    results['variables_failed'].append({
+                        'name': var_data.get('name', 'unknown'),
+                        'type': var_data.get('type', 'unknown'),
+                        'order': current_order,
+                        'error': str(e)
+                    })
+                    results['total_failed'] += 1
+                    
+                    logger.error({
+                        "event": "batch_variable_exception",
+                        "catalog_id": catalog_id,
+                        "variable_name": var_data.get('name', 'unknown'),
+                        "variable_type": var_data.get('type', 'unknown'),
+                        "order": current_order,
+                        "error": str(e)
+                    })
+            
+            # Update overall success status
+            if results['total_failed'] > 0:
+                results['success'] = False
+                results['message'] = f"Created {results['total_created']} variables, {results['total_failed']} failed"
+            else:
+                results['message'] = f"Successfully created all {results['total_created']} variables"
+            
+            logger.info({
+                "event": "batch_variable_creation_completed",
+                "catalog_id": catalog_id,
+                "total_created": results['total_created'],
+                "total_failed": results['total_failed'],
+                "success": results['success']
+            })
+            
+            return results
+            
+        except Exception as e:
+            logger.error({
+                "event": "batch_variable_creation_failed",
+                "catalog_identifier": catalog_identifier,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to create batch variables: {str(e)}',
+                'variables_created': [],
+                'variables_failed': [],
+                'total_requested': len(variables),
+                'total_created': 0,
+                'total_failed': len(variables)
+            }
+
 
 # Global ServiceNow API client instance
 _servicenow_client = None

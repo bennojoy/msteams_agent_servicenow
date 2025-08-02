@@ -16,6 +16,18 @@ from openai_agents.servicenow_api import get_servicenow_client
 
 logger = get_logger(__name__)
 
+class VariableDefinition(BaseModel):
+    """Pydantic model for variable definitions in batch creation."""
+    type: str = Field(..., description="Variable type: 'string', 'boolean', 'choice', 'multiple_choice', 'date', 'reference'")
+    name: str = Field(..., description="Variable name")
+    label: str = Field(..., description="Question text/label that users will see")
+    required: bool = Field(default=False, description="Whether variable is required")
+    default_value: Optional[str] = Field(default=None, description="Default value for the variable")
+    help_text: Optional[str] = Field(default=None, description="Help text for the variable")
+    choices: Optional[List[str]] = Field(default=None, description="List of choices for choice/multiple_choice variables")
+    reference_table: Optional[str] = Field(default=None, description="Reference table for reference variables")
+    reference_qual_condition: Optional[str] = Field(default="active=true", description="Reference qualifier condition for reference variables")
+
 
 # ---------- ServiceNow Catalog Lookup Tools ----------
 @function_tool
@@ -612,6 +624,58 @@ async def get_servicenow_variable_types() -> Dict[str, Any]:
         }
 
 
+@function_tool
+async def add_multiple_variables(catalog_identifier: str, variables: List[VariableDefinition]) -> Dict[str, Any]:
+    """
+    Create multiple variables for a catalog item with proper order sequencing.
+    
+    Args:
+        catalog_identifier: Catalog item ID or number
+        variables: List of variable definitions with proper structure
+    
+    Returns:
+        Dictionary with success status and results
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "batch_variable_creation_tool_called",
+            "catalog_identifier": catalog_identifier,
+            "variable_count": len(variables)
+        })
+        
+        # Convert Pydantic models to dictionaries for the API call
+        variables_dict = [var.model_dump() for var in variables]
+        result = servicenow.create_multiple_variables(catalog_identifier, variables_dict)
+        
+        logger.info({
+            "event": "batch_variable_creation_tool_completed",
+            "catalog_identifier": catalog_identifier,
+            "total_created": result.get('total_created', 0),
+            "total_failed": result.get('total_failed', 0),
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "batch_variable_creation_tool_failed",
+            "catalog_identifier": catalog_identifier,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to create batch variables: {str(e)}'
+        }
+
+
 def get_servicenow_variables_tools():
     """Get ServiceNow variables tools for the agent."""
     return [
@@ -626,6 +690,7 @@ def get_servicenow_variables_tools():
         add_select_box_variable,
         add_date_variable,
         add_reference_variable,
+        add_multiple_variables,
         # Variable set tools
         link_variable_set_to_catalog,
         # Publishing tool

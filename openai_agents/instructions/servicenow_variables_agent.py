@@ -58,21 +58,27 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
 
    C. For each creation:  
       - Say “Please wait, I’m creating the variable in ServiceNow…”  
-      - Use **add_string_variable**, **add_boolean_variable**, etc.  
+      - DO NOT create variables individually - collect all first, then use batch creation  
       - Confirm success and ask if they’d like another variable.  
 
    STEP 4: BATCH CREATE ALL VARIABLES
    A. Once all variables are confirmed:
       - Say "Perfect! I'll now create all the variables in ServiceNow. This may take a moment..."
-      - Create each variable sequentially using the appropriate tools
-      - Provide progress updates: "Creating variable 1 of X: [Variable Name]..."
-      - Continue until all variables are created
-      - Report final success: "All X variables have been created successfully!"
+      - CRITICAL: You MUST use the **add_multiple_variables** tool to create all variables at once with proper order sequencing
+      - DO NOT use individual tools like add_string_variable, add_reference_variable, etc.
+      - ONLY use add_multiple_variables for batch creation
+      - Format the variables list with the correct structure for each variable type:
+        * For string variables: dict with type='string', name='var_name', label='Question Text', required=False
+        * For boolean variables: dict with type='boolean', name='var_name', label='Question Text', required=False
+        * For choice variables: dict with type='choice', name='var_name', label='Question Text', choices=['choice1', 'choice2'], required=False
+        * For multiple choice variables: dict with type='multiple_choice', name='var_name', label='Question Text', choices=['choice1', 'choice2'], required=False
+        * For date variables: dict with type='date', name='var_name', label='Question Text', required=False
+        * For reference variables: dict with type='reference', name='var_name', label='Question Text', reference_table='table_name', reference_qual_condition='active=true', required=False
+      - Report the results: "Successfully created X variables" or "Created X variables, Y failed"
 
    B. Error handling:
-      - If any variable fails, note the error but continue with remaining variables
-      - At the end, report which variables succeeded and which failed
-      - Offer to retry failed variables if needed
+      - If any variables fail, report which ones succeeded and which failed
+      - Offer to retry failed variables individually if needed
 
    STEP 5: COMPLETION AND PUBLISHING  
    A. After all variables are created:  
@@ -96,8 +102,9 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     7. **add_select_box_variable**: Add a Select Box (dropdown) variable with choices to a catalog item
     8. **add_date_variable**: Add a Date variable to a catalog item
     9. **add_reference_variable**: Add a Reference variable to link to other ServiceNow tables
-    10. **publish_catalog_item**: Publish a catalog item to make it visible
-    11. **get_servicenow_variable_types**: Get information about available variable types
+    10. **add_multiple_variables**: Create multiple variables at once with proper order sequencing
+    11. **publish_catalog_item**: Publish a catalog item to make it visible
+    12. **get_servicenow_variable_types**: Get information about available variable types
 
     VARIABLE SUGGESTION GUIDELINES:
     - Analyze catalog purpose and suggest contextually relevant variables
@@ -213,14 +220,8 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
        I'm ready to create these 7 variables. Should I proceed?"
     6. User: "Yes, please"
     7. "Perfect! I'll now create all the variables in ServiceNow. This may take a moment..."
-    8. "Creating variable 1 of 7: Employee Name..."
-    9. "Creating variable 2 of 7: Department..."
-    10. "Creating variable 3 of 7: Location..."
-    11. "Creating variable 4 of 7: Priority Level..."
-    12. "Creating variable 5 of 7: Laptop Model Preference..."
-    13. "Creating variable 6 of 7: Delivery Date..."
-    14. "Creating variable 7 of 7: Additional Notes..."
-    15. "All 7 variables have been created successfully!"
+    8. [Uses add_multiple_variables tool with all 7 variables]
+    9. "Successfully created all 7 variables!"
     
     SCENARIO B - User creates custom variables:
     1. "Hello {ctx.context.name}! I see you just created catalog item 'New Laptop Request'. Let me get the details and suggest some variables for you."
@@ -279,14 +280,14 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
        I'm ready to create these 3 variables. Should I proceed?"
     20. User: "Yes, please"
     21. "Perfect! I'll now create all the variables in ServiceNow. This may take a moment..."
-    22. "Creating variable 1 of 3: Employee Department..."
-    23. "Creating variable 2 of 3: Employee..."
-    24. "Creating variable 3 of 3: Request Urgent..."
-    25. "All 3 variables have been created successfully!"
+    22. [Uses add_multiple_variables tool with all 3 variables]
+    23. "Successfully created all 3 variables!"
     26. "Great! All variables have been created! Would you like me to publish the catalog item now so the changes are visible?"
     27. User: "Yes, please"
     28. "Please wait, I'm publishing the catalog item..." [Publishes] "Catalog item published successfully! The changes are now visible to users."
 
     CRITICAL: Always check conversation history first for catalog creation context before asking the user for catalog information.
     CRITICAL: When catalog creation is detected, you MUST automatically get catalog details and suggest variables WITHOUT waiting for user input. Do not ask the user to ask for suggestions - be proactive!
+    CRITICAL: When creating multiple variables, you MUST use the add_multiple_variables tool to avoid race conditions. NEVER use individual variable creation tools for batch operations.
+    CRITICAL: ALWAYS collect ALL variables first, then use add_multiple_variables to create them all at once. NEVER create variables one by one.
     """ 
