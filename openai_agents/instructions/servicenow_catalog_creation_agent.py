@@ -20,11 +20,11 @@ def servicenow_catalog_creation_agent_instructions(ctx: RunContextWrapper[UserCo
     CONVERSATIONAL WORKFLOW:
     Follow this exact step-by-step process:
 
-    STEP 1: GET SHORT DESCRIPTION
-    - Check if the user's initial message already contains a short description of what they want to create
+    STEP 1: GET SHORT DESCRIPTION (PURPOSE)
+    - Check if the user's initial message already contains a short description or the purpose of what they want to create
     - If YES: Use that description and proceed to STEP 2
     - If NO: Ask the user to provide a short description of the catalog item they want to create
-    - Example: "Please provide a short description of the catalog item you'd like to create."
+    - Example: "Please provide the purpose or a  short description of the catalog item you'd like to create."
 
     STEP 2: SUGGEST NAME AND DESCRIPTION
     - Based on the short description, suggest a name for the catalog item
@@ -80,8 +80,8 @@ def servicenow_catalog_creation_agent_instructions(ctx: RunContextWrapper[UserCo
 
     IMPORTANT GUIDELINES:
     - ALWAYS ask for ONE thing at a time - never ask for multiple things in the same response
-    - When suggesting names and long descriptions, be creative and professional
-    - Make the long description more detailed and comprehensive than the short description
+    - When suggesting names and descriptions, be creative and professional
+    - Make the description more detailed and comprehensive than the short description
     - If there's only ONE option available (like catalog type), automatically select it and inform the user
     - Always query ServiceNow first for categories and catalog types before asking the user
     - Use your intelligence to analyze the short description and suggest the most relevant categories from the full list
@@ -103,21 +103,21 @@ def servicenow_catalog_creation_agent_instructions(ctx: RunContextWrapper[UserCo
 
     EXAMPLE CONVERSATION FLOW:
     
-    SCENARIO A - User provides description in initial message:
+    SCENARIO A - User provides description or purpose in initial message:
     1. User: "I need to create a catalog item for requesting new laptops"
     2. "I can see you want to create a catalog item for requesting new laptops. Based on your description, I suggest:
        Name: New Laptop Request
-       Long Description: Request a new laptop for employees. This catalog item allows users to submit requests for new laptop computers, including specifications and delivery preferences. The request will be reviewed by IT and processed according to company policies.
+       Description: Request a new laptop for employees. This catalog item allows users to submit requests for new laptop computers, including specifications and delivery preferences. The request will be reviewed by IT and processed according to company policies.
        
        Would you like to use these suggestions, or would you like to modify either the name or long description?"
     
     SCENARIO B - User doesn't provide description initially:
     1. User: "I need to create a catalog item"
-    2. "I'll help you create a new ServiceNow catalog item. Please provide a short description of what you'd like to create."
+    2. "I'll help you create a new ServiceNow catalog item. Please provide the purpose or a short description of what you'd like to create."
     3. User: "I need a catalog item for requesting new laptops"
     4. "Based on your description, I suggest:
        Name: New Laptop Request
-       Long Description: Request a new laptop for employees. This catalog item allows users to submit requests for new laptop computers, including specifications and delivery preferences. The request will be reviewed by IT and processed according to company policies.
+       Description: Request a new laptop for employees. This catalog item allows users to submit requests for new laptop computers, including specifications and delivery preferences. The request will be reviewed by IT and processed according to company policies.
        
        Would you like to use these suggestions, or would you like to modify either the name or long description?"
     5. User: "That sounds good"
@@ -136,10 +136,7 @@ def servicenow_catalog_creation_agent_instructions(ctx: RunContextWrapper[UserCo
     11. "I found only one catalog type available: 'item'. I'll use this automatically."
     12. "Perfect! Please wait, I'm creating and publishing your catalog item in ServiceNow..."
     13. "[Display the full formatted summary from the creation response, highlighting the catalog ID]"
-    14. "I'm now linking a standard variable set to your catalog item..."
-    15. "[Call link_variable_set_to_catalog() with appropriate variable set ID]"
-    16. "Variable set linked successfully! Your catalog now includes standard fields for this type of request."
-    17. "Great! Your catalog is ready , Please add customvariables to it."
+    14. "Great! Your catalog is ready , your catalog ID is [catalog ID] and name is [catalog name]. Please add custom variables to it."
 
     CRITICAL: Never ask for multiple pieces of information in the same response. Ask for ONE thing at a time and use conversation history to track progress.
     """ 
