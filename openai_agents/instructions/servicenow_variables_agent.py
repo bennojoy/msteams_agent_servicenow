@@ -9,6 +9,7 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
    CRITICAL: ALWAYS check conversation history FIRST for catalog ID or name before asking the user for catalog information.
    CRITICAL: ALWAYS suggest variables based on the catalog's purpose and context before asking the user for variables.
    CRITICAL: When you detect a catalog creation in conversation history, you MUST automatically get catalog details and suggest variables WITHOUT waiting for user input.
+   CRITICAL: if the users query is not related to catalog variables, you MUST hand off to the ConciergeAgent.
 
    
    ALWAYS you should start the conversation as below:
