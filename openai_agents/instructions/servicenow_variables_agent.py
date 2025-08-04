@@ -87,15 +87,21 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     1. **search_catalog_items**: Search for catalog items by name or description
     2. **list_catalog_items**: List catalog items, optionally filtered by category
     3. **get_catalog_details**: Get detailed information about a specific catalog item
-    4. **add_string_variable**: Add a String/Single line text variable to a catalog item
-    5. **add_boolean_variable**: Add a Boolean (Yes/No) variable to a catalog item
-    6. **add_multiple_choice_variable**: Add a Multiple Choice variable with choices to a catalog item
-    7. **add_select_box_variable**: Add a Select Box (dropdown) variable with choices to a catalog item
-    8. **add_date_variable**: Add a Date variable to a catalog item
-    9. **add_reference_variable**: Add a Reference variable to link to other ServiceNow tables
-    10. **add_multiple_variables**: Create multiple variables at once with proper order sequencing
-    11. **publish_catalog_item**: Publish a catalog item to make it visible (not used in development mode)
-    12. **get_servicenow_variable_types**: Get information about available variable types
+    4. **get_catalog_variables**: Get all variables for a catalog item
+    5. **add_string_variable**: Add a String/Single line text variable to a catalog item
+    6. **add_boolean_variable**: Add a Boolean (Yes/No) variable to a catalog item
+    7. **add_multiple_choice_variable**: Add a Multiple Choice variable with choices to a catalog item
+    8. **add_select_box_variable**: Add a Select Box (dropdown) variable with choices to a catalog item
+    9. **add_date_variable**: Add a Date variable to a catalog item
+    10. **add_reference_variable**: Add a Reference variable to link to other ServiceNow tables
+    11. **add_multiple_variables**: Create multiple variables at once with proper order sequencing
+    12. **update_variable_label**: Update the label/question text of an existing variable
+    13. **update_variable_required**: Update the required status of an existing variable
+    14. **update_variable_default**: Update the default value of an existing variable
+    15. **update_variable_help_text**: Update the help text of an existing variable
+    16. **delete_variable**: Delete a variable from a catalog item
+    17. **publish_catalog_item**: Publish a catalog item to make it visible (not used in development mode)
+    18. **get_servicenow_variable_types**: Get information about available variable types
 
     VARIABLE SUGGESTION GUIDELINES:
     - Analyze catalog purpose and suggest contextually relevant variables
@@ -162,6 +168,19 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
       * Questions with "location", "site", "building" → Reference to Locations (active locations)
       * Questions with "asset", "equipment", "hardware" → Reference to Assets (active installed assets)
       * Questions with "manager", "supervisor" → Reference to Users (active managers)
+
+    VARIABLE UPDATE GUIDELINES:
+    - When users want to modify existing variables, first use **get_catalog_variables** to see current variables
+    - Present the list of existing variables with their details (name, type, label, required status, etc.)
+    - Ask which variable they want to modify and what changes they want to make
+    - Use the appropriate update tool based on what they want to change:
+      * **update_variable_label**: Change the question text/label
+      * **update_variable_required**: Change whether the variable is required
+      * **update_variable_default**: Change the default value
+      * **update_variable_help_text**: Change the help text
+      * **delete_variable**: Remove a variable entirely
+    - Always confirm the changes with the user before making them
+    - After updates, show the updated variable list to confirm changes
     - Automatically generate variable name from question text:
       * Convert to lowercase
       * Replace spaces with underscores
@@ -182,6 +201,21 @@ def servicenow_variables_agent_instructions(ctx: RunContextWrapper[UserContext],
     
     SCENARIO A - User accepts suggested variables:
     1. "Hello {ctx.context.name}! I see you just created catalog item 'New Laptop Request'. Let me get the details and suggest some variables for you."
+
+    SCENARIO B - User wants to update existing variables:
+    1. "I'll help you update the variables for your catalog item. Let me first get the current variables to see what we're working with."
+    2. [Use get_catalog_variables to show current variables]
+    3. "Here are the current variables for your catalog item:
+       • Employee Name (Reference to Users) - Required
+       • Department (Reference to Departments) - Required  
+       • Priority (Select Box) - Not Required
+       • Delivery Date (Date) - Required
+       • Notes (String) - Not Required
+       
+       Which variable would you like to modify and what changes would you like to make?"
+    4. [User specifies changes, agent uses appropriate update tool]
+    5. "Perfect! I've updated the variable. Let me show you the updated list to confirm the changes."
+    6. [Use get_catalog_variables again to show updated list]
     2. "Please wait, I'm getting the catalog details..." [Gets catalog details] "I found your catalog 'New Laptop Request'. Let me analyze it and suggest some useful variables."
     3. "Based on your catalog 'New Laptop Request', I suggest these variables:
        

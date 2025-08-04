@@ -150,10 +150,18 @@ class WaitToolsConfig:
                     "add_multiple_variables",                 # Create multiple variables at once with proper ordering
                     #"publish_catalog_item",                   # Publish catalog item after adding variables (disabled in development mode)
                     
+                    # Variable Update Tools (show wait messages)
+                    "update_variable_label",                  # Update variable label/question text
+                    "update_variable_required",               # Update variable required status
+                    "update_variable_default",                # Update variable default value
+                    "update_variable_help_text",              # Update variable help text
+                    "delete_variable",                        # Delete a variable
+                    
                     # Get/Read Tools (no wait messages, but controlled access)
                     # "search_catalog_items",                # Search for catalog items by name/number
                     # "list_catalog_items",                  # List catalog items with optional category filter
                     # "get_catalog_details",                 # Get detailed info about a specific catalog item
+                    "get_catalog_variables",                  # Get all variables for a catalog item
                     # "get_servicenow_variable_types",       # Get available ServiceNow variable types
                 ],
                 "ConciergeAgent": [

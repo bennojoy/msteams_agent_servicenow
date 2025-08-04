@@ -676,6 +676,290 @@ async def add_multiple_variables(catalog_identifier: str, variables: List[Variab
         }
 
 
+@function_tool
+async def get_catalog_variables(catalog_identifier: str) -> Dict[str, Any]:
+    """
+    Get all variables for a catalog item.
+    
+    Args:
+        catalog_identifier: Catalog item ID or number
+    
+    Returns:
+        Dictionary with list of variables and their details
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "get_catalog_variables_tool_called",
+            "catalog_identifier": catalog_identifier
+        })
+        
+        result = servicenow.get_catalog_variables(catalog_identifier)
+        
+        logger.info({
+            "event": "get_catalog_variables_tool_completed",
+            "catalog_identifier": catalog_identifier,
+            "variable_count": result.get('count', 0),
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "get_catalog_variables_tool_failed",
+            "catalog_identifier": catalog_identifier,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to get catalog variables: {str(e)}'
+        }
+
+@function_tool
+async def update_variable_label(variable_sys_id: str, new_label: str) -> Dict[str, Any]:
+    """
+    Update the label/question text of an existing variable.
+    
+    Args:
+        variable_sys_id: The variable's sys_id
+        new_label: New question text/label for the variable
+    
+    Returns:
+        Dictionary with success status and result
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "update_variable_label_tool_called",
+            "variable_sys_id": variable_sys_id,
+            "new_label": new_label
+        })
+        
+        updates = {'question_text': new_label}
+        result = servicenow.update_variable(variable_sys_id, updates)
+        
+        logger.info({
+            "event": "update_variable_label_tool_completed",
+            "variable_sys_id": variable_sys_id,
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "update_variable_label_tool_failed",
+            "variable_sys_id": variable_sys_id,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to update variable label: {str(e)}'
+        }
+
+@function_tool
+async def update_variable_required(variable_sys_id: str, required: bool) -> Dict[str, Any]:
+    """
+    Update the required status of an existing variable.
+    
+    Args:
+        variable_sys_id: The variable's sys_id
+        required: Whether the variable should be required
+    
+    Returns:
+        Dictionary with success status and result
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "update_variable_required_tool_called",
+            "variable_sys_id": variable_sys_id,
+            "required": required
+        })
+        
+        updates = {'mandatory': 'true' if required else 'false'}
+        result = servicenow.update_variable(variable_sys_id, updates)
+        
+        logger.info({
+            "event": "update_variable_required_tool_completed",
+            "variable_sys_id": variable_sys_id,
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "update_variable_required_tool_failed",
+            "variable_sys_id": variable_sys_id,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to update variable required status: {str(e)}'
+        }
+
+@function_tool
+async def update_variable_default(variable_sys_id: str, default_value: str) -> Dict[str, Any]:
+    """
+    Update the default value of an existing variable.
+    
+    Args:
+        variable_sys_id: The variable's sys_id
+        default_value: New default value for the variable
+    
+    Returns:
+        Dictionary with success status and result
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "update_variable_default_tool_called",
+            "variable_sys_id": variable_sys_id,
+            "default_value": default_value
+        })
+        
+        updates = {'default_value': default_value}
+        result = servicenow.update_variable(variable_sys_id, updates)
+        
+        logger.info({
+            "event": "update_variable_default_tool_completed",
+            "variable_sys_id": variable_sys_id,
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "update_variable_default_tool_failed",
+            "variable_sys_id": variable_sys_id,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to update variable default value: {str(e)}'
+        }
+
+@function_tool
+async def update_variable_help_text(variable_sys_id: str, help_text: str) -> Dict[str, Any]:
+    """
+    Update the help text of an existing variable.
+    
+    Args:
+        variable_sys_id: The variable's sys_id
+        help_text: New help text for the variable
+    
+    Returns:
+        Dictionary with success status and result
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "update_variable_help_text_tool_called",
+            "variable_sys_id": variable_sys_id,
+            "help_text": help_text
+        })
+        
+        updates = {'help_text': help_text}
+        result = servicenow.update_variable(variable_sys_id, updates)
+        
+        logger.info({
+            "event": "update_variable_help_text_tool_completed",
+            "variable_sys_id": variable_sys_id,
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "update_variable_help_text_tool_failed",
+            "variable_sys_id": variable_sys_id,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to update variable help text: {str(e)}'
+        }
+
+@function_tool
+async def delete_variable(variable_sys_id: str) -> Dict[str, Any]:
+    """
+    Delete a variable from a catalog item.
+    
+    Args:
+        variable_sys_id: The variable's sys_id
+    
+    Returns:
+        Dictionary with success status and result
+    """
+    try:
+        servicenow = get_servicenow_client()
+        if not servicenow:
+            return {
+                'success': False,
+                'error': 'ServiceNow client not initialized'
+            }
+        
+        logger.info({
+            "event": "delete_variable_tool_called",
+            "variable_sys_id": variable_sys_id
+        })
+        
+        result = servicenow.delete_variable(variable_sys_id)
+        
+        logger.info({
+            "event": "delete_variable_tool_completed",
+            "variable_sys_id": variable_sys_id,
+            "success": result.get('success', False)
+        })
+        
+        return result
+        
+    except Exception as e:
+        logger.error({
+            "event": "delete_variable_tool_failed",
+            "variable_sys_id": variable_sys_id,
+            "error": str(e)
+        })
+        return {
+            'success': False,
+            'error': f'Failed to delete variable: {str(e)}'
+        }
+
+
 def get_servicenow_variables_tools():
     """Get ServiceNow variables tools for the agent."""
     return [
@@ -683,6 +967,7 @@ def get_servicenow_variables_tools():
         search_catalog_items,
         list_catalog_items,
         get_catalog_details,
+        get_catalog_variables,
         # Variable creation tools
         add_string_variable,
         add_boolean_variable,
@@ -691,6 +976,12 @@ def get_servicenow_variables_tools():
         add_date_variable,
         add_reference_variable,
         add_multiple_variables,
+        # Variable update tools
+        update_variable_label,
+        update_variable_required,
+        update_variable_default,
+        update_variable_help_text,
+        delete_variable,
         # Variable set tools
         link_variable_set_to_catalog,
         # Publishing tool

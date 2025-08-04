@@ -1746,6 +1746,218 @@ class ServiceNowAPI:
                 'total_failed': len(variables)
             }
 
+    def get_catalog_variables(self, catalog_identifier: str) -> Dict[str, Any]:
+        """
+        Get all variables for a catalog item.
+        
+        Args:
+            catalog_identifier: Catalog item ID or number
+            
+        Returns:
+            Dictionary with list of variables and their details
+        """
+        try:
+            catalog_id = self._resolve_catalog_id(catalog_identifier)
+            
+            # Query variables for this catalog item - only get active variables
+            endpoint = urljoin(self.instance_url, f'/api/now/table/item_option_new?sysparm_query=cat_item={catalog_id}^active=true&sysparm_display_value=true')
+            response = self.session.get(endpoint, timeout=30)
+            
+            if response.status_code == 200:
+                result = response.json()
+                variables = result.get('result', [])
+                
+                # Format the variables
+                formatted_variables = []
+                for var in variables:
+                    formatted_variables.append({
+                        'sys_id': var.get('sys_id', ''),
+                        'name': var.get('name', ''),
+                        'question_text': var.get('question_text', ''),
+                        'type': var.get('type', ''),
+                        'type_display': self._get_variable_type_display(var.get('type', '')),
+                        'mandatory': var.get('mandatory', False),
+                        'active': var.get('active', True),
+                        'order': var.get('order', 100),
+                        'default_value': var.get('default_value', ''),
+                        'help_text': var.get('help_text', ''),
+                        'reference': var.get('reference', ''),
+                        'reference_qual_condition': var.get('reference_qual_condition', '')
+                    })
+                
+                logger.info({
+                    "event": "catalog_variables_retrieved",
+                    "catalog_id": catalog_id,
+                    "variable_count": len(formatted_variables)
+                })
+                
+                return {
+                    'success': True,
+                    'catalog_id': catalog_id,
+                    'variables': formatted_variables,
+                    'count': len(formatted_variables)
+                }
+            else:
+                logger.error({
+                    "event": "catalog_variables_retrieval_failed",
+                    "catalog_id": catalog_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text
+                })
+                return {
+                    'success': False,
+                    'error': f'Failed to get catalog variables: {response.text}'
+                }
+                
+        except Exception as e:
+            logger.error({
+                "event": "catalog_variables_retrieval_error",
+                "catalog_identifier": catalog_identifier,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to get catalog variables: {str(e)}'
+            }
+
+    def update_variable(self, variable_sys_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Update an existing variable.
+        
+        Args:
+            variable_sys_id: The variable's sys_id
+            updates: Dictionary of fields to update
+            
+        Returns:
+            Dictionary with success status and result
+        """
+        try:
+            # ServiceNow update endpoint
+            endpoint = urljoin(self.instance_url, f'/api/now/table/item_option_new/{variable_sys_id}')
+            
+            # Log the update API call
+            logger.info({
+                "event": "servicenow_variable_update_api_call",
+                "method": "PATCH",
+                "endpoint": endpoint,
+                "variable_sys_id": variable_sys_id,
+                "updates": updates
+            })
+            
+            response = self.session.patch(endpoint, json=updates, timeout=30)
+            
+            if response.status_code in [200, 204]:
+                logger.info({
+                    "event": "servicenow_variable_updated",
+                    "variable_sys_id": variable_sys_id
+                })
+                return {
+                    'success': True,
+                    'variable_sys_id': variable_sys_id,
+                    'message': f"Variable updated successfully"
+                }
+            else:
+                logger.error({
+                    "event": "servicenow_variable_update_failed",
+                    "variable_sys_id": variable_sys_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text
+                })
+                return {
+                    'success': False,
+                    'error': f'Failed to update variable: {response.text}'
+                }
+                
+        except Exception as e:
+            logger.error({
+                "event": "servicenow_variable_update_error",
+                "variable_sys_id": variable_sys_id,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to update variable: {str(e)}'
+            }
+
+    def delete_variable(self, variable_sys_id: str) -> Dict[str, Any]:
+        """
+        Delete a variable from a catalog item.
+        
+        Args:
+            variable_sys_id: The variable's sys_id
+            
+        Returns:
+            Dictionary with success status and result
+        """
+        try:
+            # ServiceNow delete endpoint
+            endpoint = urljoin(self.instance_url, f'/api/now/table/item_option_new/{variable_sys_id}')
+            
+            # Log the delete API call
+            logger.info({
+                "event": "servicenow_variable_delete_api_call",
+                "method": "DELETE",
+                "endpoint": endpoint,
+                "variable_sys_id": variable_sys_id
+            })
+            
+            response = self.session.delete(endpoint, timeout=30)
+            
+            if response.status_code in [200, 204]:
+                logger.info({
+                    "event": "servicenow_variable_deleted",
+                    "variable_sys_id": variable_sys_id
+                })
+                return {
+                    'success': True,
+                    'variable_sys_id': variable_sys_id,
+                    'message': f"Variable deleted successfully"
+                }
+            else:
+                logger.error({
+                    "event": "servicenow_variable_delete_failed",
+                    "variable_sys_id": variable_sys_id,
+                    "status_code": response.status_code,
+                    "response_text": response.text
+                })
+                return {
+                    'success': False,
+                    'error': f'Failed to delete variable: {response.text}'
+                }
+                
+        except Exception as e:
+            logger.error({
+                "event": "servicenow_variable_delete_error",
+                "variable_sys_id": variable_sys_id,
+                "error": str(e)
+            })
+            return {
+                'success': False,
+                'error': f'Failed to delete variable: {str(e)}'
+            }
+
+    def _get_variable_type_display(self, type_code: str) -> str:
+        """Get human-readable variable type name from type code."""
+        # Handle both numeric codes and text values from ServiceNow
+        type_mapping = {
+            # Numeric codes
+            '1': 'Boolean (Yes/No)',
+            '3': 'Multiple Choice',
+            '5': 'Select Box',
+            '6': 'String/Single line text',
+            '8': 'Reference',
+            '9': 'Date',
+            # Text values from ServiceNow
+            'Single Line Text': 'String/Single line text',
+            'Multiple Choice': 'Multiple Choice',
+            'Select Box': 'Select Box',
+            'Reference': 'Reference',
+            'Date': 'Date',
+            'Boolean': 'Boolean (Yes/No)',
+            'Yes/No': 'Boolean (Yes/No)'
+        }
+        return type_mapping.get(type_code, f'Unknown Type ({type_code})')
+
 
 # Global ServiceNow API client instance
 _servicenow_client = None
